@@ -9,15 +9,22 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from sklearn.metrics import confusion_matrix
 from scipy.special import softmax
+from tqdm import tqdm
 
+global pbar
 
-def xDNN(Input, Mode):
+def xDNN(Input, Mode, verbose=1):
+    global pbar
+
+    if verbose == 1:
+        pbar = tqdm()
+
     if Mode == 'Learning':
         Images = Input['Images']
         Features = Input['Features']
         Labels = Input['Labels']
         CN = max(Labels)
-        Prototypes = PrototypesIdentification(Images, Features, Labels, CN)
+        Prototypes = PrototypesIdentification(Images, Features, Labels, CN, verbose)
         Output = {}
         Output['xDNNParms'] = {}
         Output['xDNNParms']['Parameters'] = Prototypes
@@ -32,7 +39,7 @@ def xDNN(Input, Mode):
     elif Mode == 'Validation':
         Params = Input['xDNNParms']
         datates = Input['Features']
-        Test_Results = DecisionMaking(Params, datates)
+        Test_Results = DecisionMaking(Params, datates, verbose)
         EstimatedLabels = Test_Results['EstimatedLabels']
         Scores = Test_Results['Scores']
         Output = {}
@@ -43,7 +50,9 @@ def xDNN(Input, Mode):
         return Output
 
 
-def PrototypesIdentification(Image, GlobalFeature, LABEL, CL):
+def PrototypesIdentification(Image, GlobalFeature, LABEL, CL, verbose):
+    global pbar
+
     data = {}
     image = {}
     label = {}
@@ -55,12 +64,22 @@ def PrototypesIdentification(Image, GlobalFeature, LABEL, CL):
         for j in range(0, len(seq)):
             image[i][j] = Image[seq[j][0]]
         label[i] = np.ones((len(seq), 1)) * i
+    if verbose == 1:
+        acc = 0
+        for i in range(0, CL + 1):
+            L, _, _ = np.shape(data[i])
+            acc += L
+        pbar.total = acc
     for i in range(0, CL + 1):
-        Prototypes[i] = xDNNclassifier(data[i], image[i])
+        Prototypes[i] = xDNNclassifier(data[i], image[i], verbose)
+    if verbose == 1:
+        pbar.close()
     return Prototypes
 
 
-def xDNNclassifier(Data, Image):
+def xDNNclassifier(Data, Image, verbose):
+    global pbar
+
     L, N, W = np.shape(Data)
     radius = 1 - math.cos(math.pi / 6)
     data = Data.copy()
@@ -99,6 +118,8 @@ def xDNNclassifier(Data, Image):
                         Support[position] + 1)
             Support[position] = Support[position] + 1
             Radius[position] = 0.5 * Radius[position] + 0.5 * (X[position,] - sum(Centre[position,] ** 2)) / 2
+        if verbose == 1:
+            pbar.update()
     dic = {}
     dic['Noc'] = Noc
     dic['Centre'] = Centre
@@ -111,7 +132,9 @@ def xDNNclassifier(Data, Image):
     return dic
 
 
-def DecisionMaking(Params, datates):
+def DecisionMaking(Params, datates, verbose):
+    global pbar
+
     PARAM = Params['Parameters']
     CurrentNC = Params['CurrentNumberofClass']
     LAB = Params['MemberLabels']
@@ -119,14 +142,20 @@ def DecisionMaking(Params, datates):
     LTes = np.shape(datates)[0]
     EstimatedLabels = np.zeros((LTes))
     Scores = np.zeros((LTes, CurrentNC))
+
+    if verbose == 1:
+        pbar.total = CurrentNC * LTes
+
     for i in range(1, LTes + 1):
         data = datates[i - 1,]
         R = np.zeros((VV, CurrentNC))
         Value = np.zeros((CurrentNC, 1))
         for k in range(0, CurrentNC):
             distance = np.sort(cdist(data.reshape(1, -1), PARAM[k]['Centre'], 'minkowski', 6))[0]
-            # distance=np.sort(cdist(data.reshape(1, -1),PARAM[k]['Centre'],'euclidean'))[0]
             Value[k] = distance[0]
+
+            if verbose == 1:
+                pbar.update()
         Value = softmax(-1 * Value ** 2).T
         Scores[i - 1,] = Value
         Value = Value[0]
@@ -134,6 +163,9 @@ def DecisionMaking(Params, datates):
         indx = np.argsort(Value)[::-1]
         EstimatedLabels[i - 1] = indx[0]
     LABEL1 = np.zeros((CurrentNC, 1))
+
+    if verbose == 1:
+        pbar.close()
 
     for i in range(0, CurrentNC):
         LABEL1[i] = np.unique(LAB[i])

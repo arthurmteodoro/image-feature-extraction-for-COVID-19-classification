@@ -91,7 +91,7 @@ if __name__ == '__main__':
     intermediate_layer_model = tf.keras.Model(inputs=model.input, outputs=model.get_layer(layer_name).output)
     intermediate_layer_model.summary()
 
-    input_train, input_test = extract_feature('/home/arthur/Programs/covid-ct', intermediate_layer_model, process_img,
+    input_train, input_test = extract_feature('/home/arthur/Programs/covid-ct2', intermediate_layer_model, process_img,
                                               verbose=1, validation_split=0.2)
 
     from xDNN_class import *
