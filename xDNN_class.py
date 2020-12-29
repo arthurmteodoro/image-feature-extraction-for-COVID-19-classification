@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 global pbar
 
+
 def xDNN(Input, Mode, verbose=1):
     global pbar
 
