@@ -5,18 +5,13 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 
 
-def extract_feature(data_dir, model, process_image):
+def extract_feature(data_dir, model, process_image, verbose=1):
     # check if data_dir is a dir
-    if not(os.path.isdir(data_dir)):
+    if not (os.path.isdir(data_dir)):
         raise Exception('Data Dir is not a directory')
 
     contents = os.listdir(data_dir)
     classes = [each for each in contents if os.path.isdir(os.path.join(data_dir, each))]
-
-    total_imgs = 0
-    for each in classes:
-        class_path = os.path.join(data_dir, each)
-        total_imgs += len(os.listdir(class_path))
 
     images = []
     batch = []
@@ -24,22 +19,33 @@ def extract_feature(data_dir, model, process_image):
 
     j = 0
 
-    with tqdm(total=total_imgs, unit='imgs') as pbar:
-        for each in classes:  # Loop for the folders
+    if verbose == 1:
+        total_imgs = 0
+        for each in classes:
             class_path = os.path.join(data_dir, each)
-            files = os.listdir(class_path)
+            total_imgs += len(os.listdir(class_path))
 
-            for ii, file in enumerate(files, 1):  # Loop for the imgs inside the folders
-                # load images from file path
-                x = process_image(os.path.join(class_path, file))
-                # Extract features
-                features = model.predict(x)
-                # Append features and labels
-                batch.append(features[0])
-                images.append(file)
-                labels.append(str(j))
+        pbar = tqdm(total=total_imgs, unit='imgs')
+
+    for each in classes:  # Loop for the folders
+        class_path = os.path.join(data_dir, each)
+        files = os.listdir(class_path)
+
+        for ii, file in enumerate(files, 1):  # Loop for the imgs inside the folders
+            # load images from file path
+            x = process_image(os.path.join(class_path, file))
+            # Extract features
+            features = model.predict(x)
+            # Append features and labels
+            batch.append(features[0])
+            images.append(file)
+            labels.append(str(j))
+            if verbose == 1:
                 pbar.update(1)
-            j = j + 1
+        j = j + 1
+
+    if verbose == 1:
+        pbar.close()
 
     np_batch = np.array(batch)
     np_labels = np.array(labels)
@@ -54,7 +60,7 @@ def extract_feature(data_dir, model, process_image):
                                                         test_size=0.2)
 
     split_train = np.hsplit(y_train, 2)
-    y_train_images = split_train[0].reshape((split_train[0].shape[0], ))
+    y_train_images = split_train[0].reshape((split_train[0].shape[0],))
     y_train_labels = split_train[1].reshape((split_train[1].shape[0],)).astype(np.int32)
 
     split_test = np.hsplit(y_test, 2)
@@ -81,7 +87,8 @@ if __name__ == '__main__':
     intermediate_layer_model = tf.keras.Model(inputs=model.input, outputs=model.get_layer(layer_name).output)
     intermediate_layer_model.summary()
 
-    input_train, input_test = extract_feature('/home/arthur/Programs/covid-ct', intermediate_layer_model, process_img)
+    input_train, input_test = extract_feature('/home/arthur/Programs/covid-ct', intermediate_layer_model, process_img,
+                                              verbose=1)
 
     from xDNN_class import *
     from sklearn.metrics import accuracy_score
