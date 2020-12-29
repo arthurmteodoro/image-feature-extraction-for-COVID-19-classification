@@ -5,7 +5,7 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 
 
-def extract_feature(data_dir, model, process_image, verbose=1):
+def extract_feature(data_dir, model, process_image, verbose=1, validation_split=None):
     # check if data_dir is a dir
     if not (os.path.isdir(data_dir)):
         raise Exception('Data Dir is not a directory')
@@ -51,26 +51,30 @@ def extract_feature(data_dir, model, process_image, verbose=1):
     np_labels = np.array(labels)
     np_images = np.array(images)
 
-    np_labels_t = np_labels.reshape(-1, 1)
-    np_images_t = np_images.reshape(-1, 1)
+    if validation_split is not None:
+        np_labels_t = np_labels.reshape(-1, 1)
+        np_images_t = np_images.reshape(-1, 1)
 
-    np_images_labels = np.hstack((np_images_t, np_labels_t))
+        np_images_labels = np.hstack((np_images_t, np_labels_t))
 
-    x_train, x_test, y_train, y_test = train_test_split(np_batch, np_images_labels,
-                                                        test_size=0.2)
+        x_train, x_test, y_train, y_test = train_test_split(np_batch, np_images_labels,
+                                                            test_size=validation_split)
 
-    split_train = np.hsplit(y_train, 2)
-    y_train_images = split_train[0].reshape((split_train[0].shape[0],))
-    y_train_labels = split_train[1].reshape((split_train[1].shape[0],)).astype(np.int32)
+        split_train = np.hsplit(y_train, 2)
+        y_train_images = split_train[0].reshape((split_train[0].shape[0],))
+        y_train_labels = split_train[1].reshape((split_train[1].shape[0],)).astype(np.int32)
 
-    split_test = np.hsplit(y_test, 2)
-    y_test_images = split_test[0].reshape((split_test[0].shape[0],))
-    y_test_labels = split_test[1].reshape((split_test[1].shape[0],)).astype(np.int32)
+        split_test = np.hsplit(y_test, 2)
+        y_test_images = split_test[0].reshape((split_test[0].shape[0],))
+        y_test_labels = split_test[1].reshape((split_test[1].shape[0],)).astype(np.int32)
 
-    input_train = {'Images': y_train_images, 'Features': x_train, 'Labels': y_train_labels}
-    input_test = {'Images': y_test_images, 'Features': x_test, 'Labels': y_test_labels}
+        input_train = {'Images': y_train_images, 'Features': x_train, 'Labels': y_train_labels}
+        input_test = {'Images': y_test_images, 'Features': x_test, 'Labels': y_test_labels}
 
-    return input_train, input_test
+        return input_train, input_test
+    else:
+        input_train = {'Images': np_images, 'Features': np_batch, 'Labels': np_labels.astype(np.int32)}
+        return input_train
 
 
 def process_img(path):
@@ -88,7 +92,7 @@ if __name__ == '__main__':
     intermediate_layer_model.summary()
 
     input_train, input_test = extract_feature('/home/arthur/Programs/covid-ct', intermediate_layer_model, process_img,
-                                              verbose=1)
+                                              verbose=1, validation_split=0.2)
 
     from xDNN_class import *
     from sklearn.metrics import accuracy_score
