@@ -7,7 +7,7 @@ def VGG16():
     base_model = tf.keras.applications.vgg16.VGG16(weights='imagenet', include_top=True)
     intermediate_layer_model = tf.keras.Model(inputs=base_model.input,
                                               outputs=base_model.get_layer('fc2').output)
-    return base_model
+    return intermediate_layer_model
 
 
 def process_vgg16(img_path):
