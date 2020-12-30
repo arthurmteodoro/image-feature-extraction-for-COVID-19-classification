@@ -19,7 +19,7 @@ def process_vgg16(img_path):
 
 
 def EfficientNetB0():
-    base_model = efns.EfficientNetB0(weights='imagenet', include_top=False, input_shape=(224, 224))
+    base_model = efns.EfficientNetB0(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
     x = tf.keras.layers.Flatten()(base_model.get_layer('block6d_add').output)
     return tf.keras.Model(inputs=base_model.input, outputs=x)
 

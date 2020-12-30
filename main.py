@@ -1,5 +1,3 @@
-import tensorflow as tf
-import numpy as np
 from xDNN_class import *
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
@@ -17,6 +15,7 @@ from extract_feature import extract_feature
 
 def run(data_dir, model):
     model, process_img = feature_extractor.get_feature_extractor(model)
+    model.summary()
 
     print('Extract Features from dataset')
     input_train, input_test = extract_feature(data_dir, model, process_img,
