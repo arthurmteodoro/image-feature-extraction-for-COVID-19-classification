@@ -13,13 +13,18 @@ import feature_extractor
 from extract_feature import extract_feature
 
 
-def run(data_dir, model):
+def run(data_dir, model, validation_dir, validation_split):
     model, process_img = feature_extractor.get_feature_extractor(model)
     model.summary()
 
     print('Extract Features from dataset')
-    input_train, input_test = extract_feature(data_dir, model, process_img,
-                                              verbose=1, validation_split=0.2)
+    if validation_dir is None:
+        input_train, input_test = extract_feature(data_dir, model, process_img,
+                                                  verbose=1, validation_split=validation_split)
+    else:
+        input_train = extract_feature(data_dir, model, process_img, verbose=1, validation_split=None)
+        input_test = extract_feature(validation_dir, model, process_img, verbose=1, validation_split=None)
+
     print('Training xDNN')
     output_train = xDNN(input_train, 'Learning')
 
@@ -55,8 +60,10 @@ def main():
     parser = argparse.ArgumentParser(
         description='Train xDNN with CNN Feature Extractor'
     )
-    parser.add_argument('--data_dir', help='Training dataset path', required=True)
+    parser.add_argument('--data-dir', help='Training dataset path', required=True)
     parser.add_argument('--model', help='Select model to feature extractor', required=True)
+    parser.add_argument('--validation-dir', help='Validation dataset path', default=None)
+    parser.add_argument('--validation-split', help='Porcentage dataset to validation', default=0.2)
 
     args = parser.parse_args()
 
