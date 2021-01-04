@@ -29,6 +29,13 @@ Example:
 
 `python main.py --data-dir ../covid-ct2 --model efficientnetb0`
 
+Available params in main file:
+
+* **data-dir**: path to dataset (contain all images if validation-dir not specified)
+* **model**: model to use as feature extractor
+* **validation-dir**: validation directory path used
+* **validation-split**: Percentage of the dataset specified in data-dir will be used for validation (used only if validation-dir is not specified)
+
 # Available Models
 
 This follow models is available to use as feature extractor:
