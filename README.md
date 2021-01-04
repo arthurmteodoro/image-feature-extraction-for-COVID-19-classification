@@ -18,16 +18,17 @@ To install all dependencies, use:
 
 To execute the code, use the follow command
 
-`$ python main.py --data-dir <DATASET_PATH> -- model <MODEL>`
+`$ python main.py --data-dir <DATASET_PATH> -- model <MODEL> --classifier <CLASSIFIER>`
 
 where:
 
 * DATASET_PATH is a path to dataset
 * MODEL is a CNN model to use as Feature Extractor
+* CLASSIFIER is a classifier used
 
 Example:
 
-`python main.py --data-dir ../covid-ct2 --model efficientnetb0`
+`python main.py --data-dir ../covid-ct2 --model efficientnetb0 --classifier xdnn`
 
 Available params in main file:
 
@@ -35,6 +36,7 @@ Available params in main file:
 * **model**: model to use as feature extractor
 * **validation-dir**: validation directory path used
 * **validation-split**: Percentage of the dataset specified in data-dir will be used for validation (used only if validation-dir is not specified)
+* **classifier**: Classifier used to process features
 
 # Available Models
 
@@ -42,3 +44,10 @@ This follow models is available to use as feature extractor:
 
 * VGG16 (`--model vgg16`)
 * EfficientNetB0 (`--model efficientnetb0`)
+
+# Available Classifiers
+
+The following list represents the classifiers available for training:
+
+* xDNN (`--classifier xdnn`)
+* K-Nearest Neighbors (`--classifier knn`)

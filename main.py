@@ -12,6 +12,26 @@ import sys
 import feature_extractor
 from extract_feature import extract_feature
 
+classifiers_available = [
+    'xdnn',
+    'knn'
+]
+
+
+def extract_features(data_dir, model, validation_dir, validation_split):
+    model, process_img = feature_extractor.get_feature_extractor(model)
+    model.summary()
+
+    print('Extract Features from dataset')
+    if validation_dir is None:
+        input_train, input_test = extract_feature(data_dir, model, process_img,
+                                                  verbose=1, validation_split=validation_split)
+    else:
+        input_train = extract_feature(data_dir, model, process_img, verbose=1, validation_split=None)
+        input_test = extract_feature(validation_dir, model, process_img, verbose=1, validation_split=None)
+
+    return input_train, input_test
+
 
 def test(y_true, y_pred):
     print('Results')
@@ -37,17 +57,8 @@ def test(y_true, y_pred):
     print("Confusion Matrix: \n", matrix)
 
 
-def run(data_dir, model, validation_dir, validation_split):
-    model, process_img = feature_extractor.get_feature_extractor(model)
-    model.summary()
-
-    print('Extract Features from dataset')
-    if validation_dir is None:
-        input_train, input_test = extract_feature(data_dir, model, process_img,
-                                                  verbose=1, validation_split=validation_split)
-    else:
-        input_train = extract_feature(data_dir, model, process_img, verbose=1, validation_split=None)
-        input_test = extract_feature(validation_dir, model, process_img, verbose=1, validation_split=None)
+def run_xdnn(data_dir, model, validation_dir, validation_split):
+    input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
 
     print('Training xDNN')
     output_train = xDNN(input_train, 'Learning')
@@ -59,14 +70,37 @@ def run(data_dir, model, validation_dir, validation_split):
     test(input_test['Labels'], output_test['EstLabs'])
 
 
+def run_knn(data_dir, model, validation_dir, validation_split):
+    input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
+
+    from sklearn.neighbors import KNeighborsClassifier
+
+    print('Training KNN')
+    clf = KNeighborsClassifier(15)
+    clf.fit(input_train['Features'], input_train['Labels'])
+
+    print('Validation KNN')
+    y_pred = clf.predict(input_test['Features'])
+    print(y_pred)
+
+    test(input_test['Labels'], y_pred)
+
+
+classifiers_fn = {
+    'xdnn': run_xdnn,
+    'knn': run_knn
+}
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Train xDNN with CNN Feature Extractor'
     )
     parser.add_argument('--data-dir', help='Training dataset path', required=True)
     parser.add_argument('--model', help='Select model to feature extractor', required=True)
+    parser.add_argument('--classifier', help='Select the Classifier method', required=True)
     parser.add_argument('--validation-dir', help='Validation dataset path', default=None)
-    parser.add_argument('--validation-split', help='Porcentage dataset to validation', default=0.2)
+    parser.add_argument('--validation-split', help='Percentage dataset to validation', default=0.2)
 
     args = parser.parse_args()
 
@@ -78,7 +112,15 @@ def main():
         print('Error: --model value must be one of: ', ', '.join(feature_extractor.avaliable_models))
         sys.exit(1)
 
-    run(**vars(args))
+    if args.classifier not in classifiers_available:
+        print('Error: --classifier value must be one of: ', ', '.join(classifiers_available))
+        sys.exit(1)
+
+    run = classifiers_fn[args.classifier]
+
+    args = vars(args)
+    del args['classifier']
+    run(**args)
 
 
 if __name__ == '__main__':
