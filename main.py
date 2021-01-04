@@ -13,6 +13,30 @@ import feature_extractor
 from extract_feature import extract_feature
 
 
+def test(y_true, y_pred):
+    print('Results')
+    accuracy = accuracy_score(y_true, y_pred)
+    print('Accuracy: %f' % accuracy)
+    # precision tp / (tp + fp)
+    precision = precision_score(y_true, y_pred, average='micro')
+    print('Precision: %f' % precision)
+    # recall: tp / (tp + fn)
+    recall = recall_score(y_true, y_pred, average='micro')
+    print('Recall: %f' % recall)
+    # f1: 2 tp / (2 tp + fp + fn)
+    f1 = f1_score(y_true, y_pred, average='micro')
+    print('F1 score: %f' % f1)
+    # kappa
+    kappa = cohen_kappa_score(y_true, y_pred)
+    print('Cohens kappa: %f' % kappa)
+    # roc auc
+    roc_auc = roc_auc_score(y_true, y_pred)
+    print('ROC AUC: %f' % roc_auc)
+    # confusion matrix
+    matrix = confusion_matrix(y_true, y_pred)
+    print("Confusion Matrix: \n", matrix)
+
+
 def run(data_dir, model, validation_dir, validation_split):
     model, process_img = feature_extractor.get_feature_extractor(model)
     model.summary()
@@ -32,28 +56,7 @@ def run(data_dir, model, validation_dir, validation_split):
     input_test['xDNNParms'] = output_train['xDNNParms']
     output_test = xDNN(input_test, 'Validation')
 
-    print('Results')
-    y_test_labels = input_test['Labels']
-    accuracy = accuracy_score(y_test_labels, output_test['EstLabs'])
-    print('Accuracy: %f' % accuracy)
-    # precision tp / (tp + fp)
-    precision = precision_score(y_test_labels, output_test['EstLabs'], average='micro')
-    print('Precision: %f' % precision)
-    # recall: tp / (tp + fn)
-    recall = recall_score(y_test_labels, output_test['EstLabs'], average='micro')
-    print('Recall: %f' % recall)
-    # f1: 2 tp / (2 tp + fp + fn)
-    f1 = f1_score(y_test_labels, output_test['EstLabs'], average='micro')
-    print('F1 score: %f' % f1)
-    # kappa
-    kappa = cohen_kappa_score(y_test_labels, output_test['EstLabs'])
-    print('Cohens kappa: %f' % kappa)
-    # roc auc
-    roc_auc = roc_auc_score(y_test_labels, output_test['EstLabs'])
-    print('ROC AUC: %f' % roc_auc)
-    # confusion matrix
-    matrix = confusion_matrix(y_test_labels, output_test['EstLabs'])
-    print("Confusion Matrix: ", matrix)
+    test(input_test['Labels'], output_test['EstLabs'])
 
 
 def main():
