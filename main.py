@@ -11,6 +11,7 @@ import os
 import sys
 import feature_extractor
 from extract_feature import extract_feature
+from sklearn.neighbors import KNeighborsClassifier
 
 classifiers_available = [
     'xdnn',
@@ -57,9 +58,7 @@ def test(y_true, y_pred):
     print("Confusion Matrix: \n", matrix)
 
 
-def run_xdnn(data_dir, model, validation_dir, validation_split):
-    input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
-
+def run_xdnn(input_train, input_test):
     print('Training xDNN')
     output_train = xDNN(input_train, 'Learning')
 
@@ -67,29 +66,29 @@ def run_xdnn(data_dir, model, validation_dir, validation_split):
     input_test['xDNNParms'] = output_train['xDNNParms']
     output_test = xDNN(input_test, 'Validation')
 
-    test(input_test['Labels'], output_test['EstLabs'])
+    return output_test['EstLabs']
 
 
-def run_knn(data_dir, model, validation_dir, validation_split):
-    input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
-
-    from sklearn.neighbors import KNeighborsClassifier
-
+def run_knn(input_train, input_test):
     print('Training KNN')
     clf = KNeighborsClassifier(15)
     clf.fit(input_train['Features'], input_train['Labels'])
 
     print('Validation KNN')
     y_pred = clf.predict(input_test['Features'])
-    print(y_pred)
+
+    return y_pred
+
+
+def run(data_dir, model, classifier, validation_dir, validation_split):
+    input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
+
+    if classifier == 'xdnn':
+        y_pred = run_xdnn(input_train, input_test)
+    elif classifier == 'knn':
+        y_pred = run_knn(input_train, input_test)
 
     test(input_test['Labels'], y_pred)
-
-
-classifiers_fn = {
-    'xdnn': run_xdnn,
-    'knn': run_knn
-}
 
 
 def main():
@@ -116,11 +115,7 @@ def main():
         print('Error: --classifier value must be one of: ', ', '.join(classifiers_available))
         sys.exit(1)
 
-    run = classifiers_fn[args.classifier]
-
-    args = vars(args)
-    del args['classifier']
-    run(**args)
+    run(**vars(args))
 
 
 if __name__ == '__main__':
