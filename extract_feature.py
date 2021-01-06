@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import random
 
 
-def extract_feature(data_dir, model, process_image, verbose=1, validation_split=None):
+def extract_feature(data_dir, model, process_image, verbose=1, validation_split=None, shuffle=True):
     # check if data_dir is a dir
     if not (os.path.isdir(data_dir)):
         raise Exception('Data Dir is not a directory')
@@ -31,7 +31,6 @@ def extract_feature(data_dir, model, process_image, verbose=1, validation_split=
     for each in classes:  # Loop for the folders
         class_path = os.path.join(data_dir, each)
         files = os.listdir(class_path)
-        random.shuffle(files)
 
         for ii, file in enumerate(files, 1):  # Loop for the imgs inside the folders
             # load images from file path
@@ -53,12 +52,13 @@ def extract_feature(data_dir, model, process_image, verbose=1, validation_split=
     np_labels = np.array(labels)
     np_images = np.array(images)
 
-    indices = np.arange(np_batch.shape[0])
-    np.random.shuffle(indices)
+    if shuffle:
+        indices = np.arange(np_batch.shape[0])
+        np.random.shuffle(indices)
 
-    np_batch = np_batch[indices]
-    np_labels = np_labels[indices]
-    np_images = np_images[indices]
+        np_batch = np_batch[indices]
+        np_labels = np_labels[indices]
+        np_images = np_images[indices]
 
     if validation_split is not None:
         np_labels_t = np_labels.reshape(-1, 1)

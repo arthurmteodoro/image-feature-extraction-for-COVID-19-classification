@@ -29,7 +29,8 @@ def extract_features(data_dir, model, validation_dir, validation_split):
                                                   verbose=1, validation_split=validation_split)
     else:
         input_train = extract_feature(data_dir, model, process_img, verbose=1, validation_split=None)
-        input_test = extract_feature(validation_dir, model, process_img, verbose=1, validation_split=None)
+        input_test = extract_feature(validation_dir, model, process_img, verbose=1,
+                                     validation_split=None, shuffle=False)
 
     return input_train, input_test
 
