@@ -49,7 +49,7 @@ def extract_feature(data_dir, model, process_image, verbose=1, validation_split=
     if verbose == 1:
         pbar.close()
 
-    np_batch = np.array(batch)
+    np_batch = np.array(batch).astype(np.float64)
     np_labels = np.array(labels)
     np_images = np.array(images)
 
