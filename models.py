@@ -24,6 +24,11 @@ def EfficientNetB0():
     return tf.keras.Model(inputs=base_model.input, outputs=x)
 
 
+def EfficientNetB0_baseline():
+    base_model = efns.EfficientNetB0(weights='imagenet', include_top=False, input_shape=(224, 224, 3), pooling='avg')
+    return base_model
+
+
 def process_efficientnetb0(img_path):
     img = tf.keras.preprocessing.image.load_img(img_path, target_size=(224, 224))
     x = tf.keras.preprocessing.image.img_to_array(img)

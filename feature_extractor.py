@@ -2,12 +2,14 @@ import models
 
 avaliable_models = [
     'vgg16',
-    'efficientnetb0'
+    'efficientnetb0',
+    'efficientnetb0-baseline'
 ]
 
 models_dict = {
     'vgg16': (models.VGG16, models.process_vgg16),
-    'efficientnetb0': (models.EfficientNetB0, models.process_efficientnetb0)
+    'efficientnetb0': (models.EfficientNetB0, models.process_efficientnetb0),
+    'efficientnetb0-baseline': (models.EfficientNetB0_baseline, models.process_efficientnetb0)
 }
 
 
