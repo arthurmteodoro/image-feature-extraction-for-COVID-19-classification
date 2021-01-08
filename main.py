@@ -21,7 +21,7 @@ classifiers_available = [
 
 def extract_features(data_dir, model, validation_dir, validation_split):
     model, process_img = feature_extractor.get_feature_extractor(model)
-    model.summary()
+    # model.summary()
 
     print('Extract Features from dataset')
     if validation_dir is None:
@@ -36,26 +36,39 @@ def extract_features(data_dir, model, validation_dir, validation_split):
 
 
 def test(y_true, y_pred):
-    print('Results')
     accuracy = accuracy_score(y_true, y_pred)
-    print('Accuracy: %f' % accuracy)
     # precision tp / (tp + fp)
     precision = precision_score(y_true, y_pred)
-    print('Precision: %f' % precision)
     # recall: tp / (tp + fn)
     recall = recall_score(y_true, y_pred)
-    print('Recall: %f' % recall)
     # f1: 2 tp / (2 tp + fp + fn)
     f1 = f1_score(y_true, y_pred)
-    print('F1 score: %f' % f1)
     # kappa
     kappa = cohen_kappa_score(y_true, y_pred)
-    print('Cohens kappa: %f' % kappa)
     # roc auc
     roc_auc = roc_auc_score(y_true, y_pred)
-    print('ROC AUC: %f' % roc_auc)
     # confusion matrix
     matrix = confusion_matrix(y_true, y_pred)
+
+    return {
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1,
+        'kappa': kappa,
+        'roc_auc': roc_auc,
+        'matrix': matrix
+    }
+
+
+def print_results(accuracy, precision, recall, f1, kappa, roc_auc, matrix):
+    print('Results')
+    print('Accuracy: %f' % accuracy)
+    print('Precision: %f' % precision)
+    print('Recall: %f' % recall)
+    print('F1 score: %f' % f1)
+    print('Cohens kappa: %f' % kappa)
+    print('ROC AUC: %f' % roc_auc)
     print("Confusion Matrix: \n", matrix)
 
 
@@ -81,7 +94,7 @@ def run_knn(input_train, input_test):
     return y_pred
 
 
-def run(data_dir, model, classifier, validation_dir, validation_split):
+def run_one_shot(data_dir, model, classifier, validation_dir, validation_split):
     input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
 
     if classifier == 'xdnn':
@@ -89,7 +102,55 @@ def run(data_dir, model, classifier, validation_dir, validation_split):
     elif classifier == 'knn':
         y_pred = run_knn(input_train, input_test)
 
-    test(input_test['Labels'], y_pred)
+    results = test(input_test['Labels'], y_pred)
+    print_results(**results)
+
+
+def run_n_times(data_dir, model, classifier, validation_dir, validation_split, ntimes):
+    acc = []
+    precision = []
+    recall = []
+    f1 = []
+    kappa = []
+    auc = []
+
+    for i in range(1, ntimes+1):
+        print('----------------------------------------------------------------')
+        print('Run %d/%d' % (i, ntimes))
+        print('----------------------------------------------------------------')
+
+        input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
+
+        if classifier == 'xdnn':
+            y_pred = run_xdnn(input_train, input_test)
+        elif classifier == 'knn':
+            y_pred = run_knn(input_train, input_test)
+
+        results = test(input_test['Labels'], y_pred)
+
+        acc.append(results['accuracy'])
+        precision.append(results['precision'])
+        recall.append(results['recall'])
+        f1.append(results['f1'])
+        kappa.append(results['kappa'])
+        auc.append(results['roc_auc'])
+
+        print('----------------------------------------------------------------')
+
+    print('----------------------- Final results --------------------------')
+    print('Accuracy: %f +/- %f' % (np.mean(acc), np.std(acc)))
+    print('Precision: %f +/- %f' % (np.mean(precision), np.std(precision)))
+    print('Recall: %f +/- %f' % (np.mean(recall), np.std(recall)))
+    print('F1 score: %f +/- %f' % (np.mean(f1), np.std(f1)))
+    print('Cohens kappa: %f +/- %f' % (np.mean(kappa), np.std(kappa)))
+    print('ROC AUC: %f +/- %f' % (np.mean(auc), np.std(auc)))
+
+
+def run(data_dir, model, classifier, validation_dir, validation_split, ntimes):
+    if ntimes is None:
+        run_one_shot(data_dir, model, classifier, validation_dir, validation_split)
+    else:
+        run_n_times(data_dir, model, classifier, validation_dir, validation_split, int(ntimes))
 
 
 def main():
@@ -101,6 +162,7 @@ def main():
     parser.add_argument('--classifier', help='Select the Classifier method', required=True)
     parser.add_argument('--validation-dir', help='Validation dataset path', default=None)
     parser.add_argument('--validation-split', help='Percentage dataset to validation', default=0.2)
+    parser.add_argument('--ntimes', help='Number of times to repeat training', default=None)
 
     args = parser.parse_args()
 
