@@ -38,15 +38,15 @@ def extract_features(data_dir, model, validation_dir, validation_split):
 def test(y_true, y_pred):
     accuracy = accuracy_score(y_true, y_pred)
     # precision tp / (tp + fp)
-    precision = precision_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred, average='macro')
     # recall: tp / (tp + fn)
-    recall = recall_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred, average='macro')
     # f1: 2 tp / (2 tp + fp + fn)
-    f1 = f1_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred, average='macro')
     # kappa
     kappa = cohen_kappa_score(y_true, y_pred)
     # roc auc
-    roc_auc = roc_auc_score(y_true, y_pred)
+    roc_auc = 0  # roc_auc_score(y_true, y_pred, multi_class='ovr')
     # confusion matrix
     matrix = confusion_matrix(y_true, y_pred)
 
@@ -83,9 +83,9 @@ def run_xdnn(input_train, input_test):
     return output_test['EstLabs']
 
 
-def run_knn(input_train, input_test):
+def run_knn(input_train, input_test, n_neighbors):
     print('Training KNN')
-    clf = KNeighborsClassifier(15)
+    clf = KNeighborsClassifier(n_neighbors)
     clf.fit(input_train['Features'], input_train['Labels'])
 
     print('Validation KNN')
@@ -94,19 +94,19 @@ def run_knn(input_train, input_test):
     return y_pred
 
 
-def run_one_shot(data_dir, model, classifier, validation_dir, validation_split):
+def run_one_shot(data_dir, model, classifier, validation_dir, validation_split, n_neighbors):
     input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
 
     if classifier == 'xdnn':
         y_pred = run_xdnn(input_train, input_test)
     elif classifier == 'knn':
-        y_pred = run_knn(input_train, input_test)
+        y_pred = run_knn(input_train, input_test, n_neighbors)
 
     results = test(input_test['Labels'], y_pred)
     print_results(**results)
 
 
-def run_n_times(data_dir, model, classifier, validation_dir, validation_split, ntimes):
+def run_n_times(data_dir, model, classifier, validation_dir, validation_split, ntimes, n_neighbors):
     acc = []
     precision = []
     recall = []
@@ -124,7 +124,7 @@ def run_n_times(data_dir, model, classifier, validation_dir, validation_split, n
         if classifier == 'xdnn':
             y_pred = run_xdnn(input_train, input_test)
         elif classifier == 'knn':
-            y_pred = run_knn(input_train, input_test)
+            y_pred = run_knn(input_train, input_test, n_neighbors)
 
         results = test(input_test['Labels'], y_pred)
 
@@ -146,11 +146,11 @@ def run_n_times(data_dir, model, classifier, validation_dir, validation_split, n
     print('ROC AUC: %f +/- %f' % (np.mean(auc), np.std(auc)))
 
 
-def run(data_dir, model, classifier, validation_dir, validation_split, ntimes):
+def run(data_dir, model, classifier, validation_dir, validation_split, ntimes, n_neighbors):
     if ntimes is None:
-        run_one_shot(data_dir, model, classifier, validation_dir, validation_split)
+        run_one_shot(data_dir, model, classifier, validation_dir, validation_split, int(n_neighbors))
     else:
-        run_n_times(data_dir, model, classifier, validation_dir, validation_split, int(ntimes))
+        run_n_times(data_dir, model, classifier, validation_dir, validation_split, int(ntimes), int(n_neighbors))
 
 
 def main():
@@ -163,6 +163,8 @@ def main():
     parser.add_argument('--validation-dir', help='Validation dataset path', default=None)
     parser.add_argument('--validation-split', help='Percentage dataset to validation', default=0.2)
     parser.add_argument('--ntimes', help='Number of times to repeat training', default=None)
+    parser.add_argument('--n-neighbors', help='Number of neighbors to use by default for kneighbors queries when knn '
+                                              'is selected as classifier', default=5)
 
     args = parser.parse_args()
 
