@@ -10,6 +10,13 @@ def VGG16():
     return intermediate_layer_model
 
 
+def VGG16_baseline():
+    base_model = tf.keras.applications.vgg16.VGG16(weights='imagenet', include_top=True)
+    intermediate_layer_model = tf.keras.Model(inputs=base_model.input,
+                                              outputs=base_model.get_layer('flatten').output)
+    return intermediate_layer_model
+
+
 def process_vgg16(img_path):
     img = tf.keras.preprocessing.image.load_img(img_path, target_size=(224, 224))
     x = tf.keras.preprocessing.image.img_to_array(img)
