@@ -12,10 +12,13 @@ import sys
 import feature_extractor
 from extract_feature import extract_feature
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import LinearSVC, SVC
 
 classifiers_available = [
     'xdnn',
-    'knn'
+    'knn',
+    'svm',
+    'svm-linear'
 ]
 
 
@@ -46,7 +49,7 @@ def test(y_true, y_pred):
     # kappa
     kappa = cohen_kappa_score(y_true, y_pred)
     # roc auc
-    roc_auc = 0  # roc_auc_score(y_true, y_pred, multi_class='ovr')
+    roc_auc = roc_auc_score(y_true, y_pred, average='macro', multi_class='ovr')
     # confusion matrix
     matrix = confusion_matrix(y_true, y_pred)
 
@@ -94,13 +97,38 @@ def run_knn(input_train, input_test, n_neighbors):
     return y_pred
 
 
-def run_one_shot(data_dir, model, classifier, validation_dir, validation_split, n_neighbors):
-    input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
+def run_svm(input_train, input_test, kernel):
+    print('Training SVM')
+    if kernel == 'linear':
+        clf = SVC(kernel='linear', C=1000, probability=True)
+    else:
+        clf = SVC(gamma=1e-5, C=1000, probability=True)
 
+    clf.fit(input_train['Features'], input_train['Labels'])
+
+    print('Validation SVM')
+    y_pred = clf.predict(input_test['Features'])
+
+    return y_pred
+
+
+def run_training(input_train, input_test, classifier, n_neighbors):
     if classifier == 'xdnn':
         y_pred = run_xdnn(input_train, input_test)
     elif classifier == 'knn':
         y_pred = run_knn(input_train, input_test, n_neighbors)
+    elif classifier == 'svm-linear':
+        y_pred = run_svm(input_train, input_test, 'linear')
+    elif classifier == 'svm':
+        y_pred = run_svm(input_train, input_test, None)
+
+    return y_pred
+
+
+def run_one_shot(data_dir, model, classifier, validation_dir, validation_split, n_neighbors):
+    input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
+
+    y_pred = run_training(input_train, input_test, classifier, n_neighbors)
 
     results = test(input_test['Labels'], y_pred)
     print_results(**results)
@@ -121,10 +149,7 @@ def run_n_times(data_dir, model, classifier, validation_dir, validation_split, n
 
         input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
 
-        if classifier == 'xdnn':
-            y_pred = run_xdnn(input_train, input_test)
-        elif classifier == 'knn':
-            y_pred = run_knn(input_train, input_test, n_neighbors)
+        y_pred = run_training(input_train, input_test, classifier, n_neighbors)
 
         results = test(input_test['Labels'], y_pred)
 
