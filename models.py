@@ -42,3 +42,25 @@ def process_efficientnetb0(img_path):
     x = np.expand_dims(x, axis=0)
     x = efns.preprocess_input(x)
     return x
+
+
+def VGG19():
+    base_model = tf.keras.applications.vgg19.VGG19(weights='imagenet', include_top=True)
+    intermediate_layer_model = tf.keras.Model(inputs=base_model.input,
+                                              outputs=base_model.get_layer('fc2').output)
+    return intermediate_layer_model
+
+
+def VGG19_baseline():
+    base_model = tf.keras.applications.vgg19.VGG19(weights='imagenet', include_top=True)
+    intermediate_layer_model = tf.keras.Model(inputs=base_model.input,
+                                              outputs=base_model.get_layer('flatten').output)
+    return intermediate_layer_model
+
+
+def process_vgg19(img_path):
+    img = tf.keras.preprocessing.image.load_img(img_path, target_size=(224, 224))
+    x = tf.keras.preprocessing.image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = tf.keras.applications.vgg19.preprocess_input(x)
+    return x
