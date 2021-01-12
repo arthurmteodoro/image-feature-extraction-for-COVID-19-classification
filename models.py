@@ -64,3 +64,18 @@ def process_vgg19(img_path):
     x = np.expand_dims(x, axis=0)
     x = tf.keras.applications.vgg19.preprocess_input(x)
     return x
+
+
+def InceptionV3_baseline():
+    base_model = tf.keras.applications.inception_v3.InceptionV3(weights='imagenet', include_top=True)
+    intermediate_layer_model = tf.keras.Model(inputs=base_model.input,
+                                              outputs=base_model.get_layer('avg_pool').output)
+    return intermediate_layer_model
+
+
+def process_inception_v3(img_path):
+    img = tf.keras.preprocessing.image.load_img(img_path, target_size=(299, 299))
+    x = tf.keras.preprocessing.image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = tf.keras.applications.inception_v3.preprocess_input(x)
+    return x
