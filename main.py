@@ -14,6 +14,7 @@ from extract_feature import extract_feature
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import LinearSVC, SVC
 from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import LabelBinarizer
 
 classifiers_available = [
     'xdnn',
@@ -43,6 +44,15 @@ def extract_features(data_dir, model, validation_dir, validation_split, full_ds=
 
 
 def test(y_true, y_pred):
+
+    def multiclass_roc_auc_score(y_true, y_pred, average='macro'):
+        lb = LabelBinarizer()
+        lb.fit(y_true)
+        Y_true = lb.transform(y_true)
+        Y_pred = lb.transform(y_pred)
+
+        return roc_auc_score(Y_true, Y_pred, average=average)
+
     accuracy = accuracy_score(y_true, y_pred)
     # precision tp / (tp + fp)
     precision = precision_score(y_true, y_pred, average='macro')
@@ -53,7 +63,7 @@ def test(y_true, y_pred):
     # kappa
     kappa = cohen_kappa_score(y_true, y_pred)
     # roc auc
-    roc_auc = roc_auc_score(y_true, y_pred, average='macro', multi_class='ovr')
+    roc_auc = multiclass_roc_auc_score(y_true, y_pred, average='macro')
     # confusion matrix
     matrix = confusion_matrix(y_true, y_pred)
 
