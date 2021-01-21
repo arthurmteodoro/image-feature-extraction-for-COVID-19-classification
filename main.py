@@ -49,7 +49,7 @@ def test(y_true, y_pred):
     # kappa
     kappa = cohen_kappa_score(y_true, y_pred)
     # roc auc
-    roc_auc = roc_auc_score(y_true, y_pred, average='macro', multi_class='ovr')
+    roc_auc = 0# roc_auc_score(y_true, y_pred, average='macro', multi_class='ovr')
     # confusion matrix
     matrix = confusion_matrix(y_true, y_pred)
 
@@ -100,9 +100,9 @@ def run_knn(input_train, input_test, n_neighbors):
 def run_svm(input_train, input_test, kernel):
     print('Training SVM')
     if kernel == 'linear':
-        clf = SVC(kernel='linear', C=1000, probability=True)
+        clf = SVC(kernel='linear', C=1000, probability=True, class_weight='balanced')
     else:
-        clf = SVC(gamma=1e-5, C=1000, probability=True)
+        clf = SVC(gamma=1e-5, C=1000, probability=True, class_weight='balanced')
 
     clf.fit(input_train['Features'], input_train['Labels'])
 

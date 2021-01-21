@@ -7,7 +7,7 @@ avaliable_models = [
     'efficientnetb0-baseline',
     'vgg19',
     'vgg19-baseline',
-    # 'inceptionv3',
+    'inceptionv3',
     'inceptionv3-baseline'
 ]
 
@@ -18,6 +18,7 @@ models_dict = {
     'efficientnetb0-baseline': (models.EfficientNetB0_baseline, models.process_efficientnetb0),
     'vgg19': (models.VGG19, models.process_vgg19),
     'vgg19-baseline': (models.VGG19_baseline, models.process_vgg19),
+    'inceptionv3': (models.InceptionV3, models.process_inception_v3),
     'inceptionv3-baseline': (models.InceptionV3_baseline, models.process_inception_v3)
 }
 

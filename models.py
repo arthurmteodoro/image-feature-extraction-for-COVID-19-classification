@@ -66,6 +66,12 @@ def process_vgg19(img_path):
     return x
 
 
+def InceptionV3():
+    base_model = tf.keras.applications.inception_v3.InceptionV3(weights='imagenet', include_top=True)
+    x = tf.keras.layers.GlobalAveragePooling2D()(base_model.get_layer('mixed9').output)
+    return tf.keras.Model(inputs=base_model.input, outputs=x)
+
+
 def InceptionV3_baseline():
     base_model = tf.keras.applications.inception_v3.InceptionV3(weights='imagenet', include_top=True)
     intermediate_layer_model = tf.keras.Model(inputs=base_model.input,
