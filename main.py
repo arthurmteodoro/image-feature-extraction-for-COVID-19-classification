@@ -13,6 +13,7 @@ import feature_extractor
 from extract_feature import extract_feature
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import LinearSVC, SVC
+from sklearn.model_selection import StratifiedKFold
 
 classifiers_available = [
     'xdnn',
@@ -22,7 +23,7 @@ classifiers_available = [
 ]
 
 
-def extract_features(data_dir, model, validation_dir, validation_split):
+def extract_features(data_dir, model, validation_dir, validation_split, full_ds=False):
     model, process_img = feature_extractor.get_feature_extractor(model)
     # model.summary()
 
@@ -30,6 +31,9 @@ def extract_features(data_dir, model, validation_dir, validation_split):
     if validation_dir is None:
         input_train, input_test = extract_feature(data_dir, model, process_img,
                                                   verbose=1, validation_split=validation_split)
+    elif full_ds:
+        input_train = extract_feature(data_dir, model, process_img, verbose=1, validation_split=None)
+        input_test = None
     else:
         input_train = extract_feature(data_dir, model, process_img, verbose=1, validation_split=None)
         input_test = extract_feature(validation_dir, model, process_img, verbose=1,
@@ -49,7 +53,7 @@ def test(y_true, y_pred):
     # kappa
     kappa = cohen_kappa_score(y_true, y_pred)
     # roc auc
-    roc_auc = 0# roc_auc_score(y_true, y_pred, average='macro', multi_class='ovr')
+    roc_auc = roc_auc_score(y_true, y_pred, average='macro', multi_class='ovr')
     # confusion matrix
     matrix = confusion_matrix(y_true, y_pred)
 
@@ -134,7 +138,7 @@ def run_one_shot(data_dir, model, classifier, validation_dir, validation_split, 
     print_results(**results)
 
 
-def run_n_times(data_dir, model, classifier, validation_dir, validation_split, ntimes, n_neighbors):
+def run_cv(data_dir, model, classifier, validation_dir, validation_split, cv, n_neighbors):
     acc = []
     precision = []
     recall = []
@@ -142,16 +146,28 @@ def run_n_times(data_dir, model, classifier, validation_dir, validation_split, n
     kappa = []
     auc = []
 
-    for i in range(1, ntimes+1):
-        print('----------------------------------------------------------------')
-        print('Run %d/%d' % (i, ntimes))
-        print('----------------------------------------------------------------')
+    input_train, _ = extract_features(data_dir, model, validation_dir, validation_split, full_ds=True)
 
-        input_train, input_test = extract_features(data_dir, model, validation_dir, validation_split)
+    skf = StratifiedKFold(n_splits=cv)
 
-        y_pred = run_training(input_train, input_test, classifier, n_neighbors)
+    for index, (train_index, test_index) in enumerate(skf.split(input_train['Features'], input_train['Labels'])):
+        fold_input_train = {
+            'Features': input_train['Features'][train_index],
+            'Images': input_train['Images'][train_index],
+            'Labels': input_train['Labels'][train_index]
+        }
 
-        results = test(input_test['Labels'], y_pred)
+        fold_input_test = {
+            'Features': input_train['Features'][test_index],
+            'Images': input_train['Images'][test_index],
+            'Labels': input_train['Labels'][test_index]
+        }
+
+        y_pred = run_training(fold_input_train, fold_input_test, classifier, n_neighbors)
+
+        results = test(fold_input_test['Labels'], y_pred)
+        print('Results for fold %d' % (index+1, ))
+        print_results(**results)
 
         acc.append(results['accuracy'])
         precision.append(results['precision'])
@@ -159,8 +175,6 @@ def run_n_times(data_dir, model, classifier, validation_dir, validation_split, n
         f1.append(results['f1'])
         kappa.append(results['kappa'])
         auc.append(results['roc_auc'])
-
-        print('----------------------------------------------------------------')
 
     print('----------------------- Final results --------------------------')
     print('Accuracy: %f +/- %f' % (np.mean(acc), np.std(acc)))
@@ -171,11 +185,11 @@ def run_n_times(data_dir, model, classifier, validation_dir, validation_split, n
     print('ROC AUC: %f +/- %f' % (np.mean(auc), np.std(auc)))
 
 
-def run(data_dir, model, classifier, validation_dir, validation_split, ntimes, n_neighbors):
-    if ntimes is None:
+def run(data_dir, model, classifier, validation_dir, validation_split, n_splits, n_neighbors):
+    if n_splits is None:
         run_one_shot(data_dir, model, classifier, validation_dir, validation_split, int(n_neighbors))
     else:
-        run_n_times(data_dir, model, classifier, validation_dir, validation_split, int(ntimes), int(n_neighbors))
+        run_cv(data_dir, model, classifier, validation_dir, validation_split, int(n_splits), int(n_neighbors))
 
 
 def main():
@@ -187,7 +201,7 @@ def main():
     parser.add_argument('--classifier', help='Select the Classifier method', required=True)
     parser.add_argument('--validation-dir', help='Validation dataset path', default=None)
     parser.add_argument('--validation-split', help='Percentage dataset to validation', default=0.2)
-    parser.add_argument('--ntimes', help='Number of times to repeat training', default=None)
+    parser.add_argument('--n-splits', help='Number of splits to K-Fold Cross Validation', default=None)
     parser.add_argument('--n-neighbors', help='Number of neighbors to use by default for kneighbors queries when knn '
                                               'is selected as classifier', default=5)
 
