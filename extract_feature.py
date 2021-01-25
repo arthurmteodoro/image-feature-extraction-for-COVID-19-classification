@@ -4,6 +4,18 @@ import os
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 import random
+import sys
+
+
+def process_ds_extract_name_label(filename, classes):
+    class_name = tf.strings.split(filename, '/')[-2]
+    class_index = tf.where(tf.equal(classes, class_name))[:, -1][0]
+    return filename, class_index
+
+
+def process_ds_load_image(filename, process_img_fn):
+    image = process_img_fn(filename)
+    return image
 
 
 def extract_feature(data_dir, model, process_image, verbose=1, validation_split=None, shuffle=True):
@@ -28,7 +40,46 @@ def extract_feature(data_dir, model, process_image, verbose=1, validation_split=
 
         pbar = tqdm(total=total_imgs, unit='imgs')
 
+    files = []
     for each in classes:  # Loop for the folders
+        class_path = os.path.join(data_dir, each)
+        files_class = os.listdir(class_path)
+        images_full_path = [os.path.abspath(os.path.join(class_path, x)) for x in files_class]
+        files.extend(images_full_path)
+
+    ds_files = tf.data.Dataset.list_files(files, shuffle=False)
+
+    classes_tensor = tf.convert_to_tensor(classes)
+    classes_tensor = list(classes_tensor.numpy())
+
+    AUTO = tf.data.experimental.AUTOTUNE
+
+    ds_name_image = ds_files.map(lambda filename: process_ds_extract_name_label(filename, classes_tensor),
+                                 num_parallel_calls=AUTO)
+    # ds_name_image = ds_name_image.batch(8)
+
+    ds_image = ds_files.map(lambda filename: process_ds_load_image(filename, process_image), num_parallel_calls=AUTO)
+    # ds_image = ds_image.batch(8)
+    ds_image.prefetch(200)
+
+    i = 0
+    for name_image, img in zip(iter(ds_name_image), iter(ds_image)):
+        img_name, class_index = name_image
+
+        img_name = str(img_name.numpy(), 'utf-8')
+        class_index = class_index.numpy()
+
+        features = model.predict(img)
+        # Append features and labels
+        batch.append(features[0])
+        images.append(img_name)
+        labels.append(class_index)
+        if verbose == 1:
+            pbar.update(1)
+
+    sys.exit(0)
+
+    '''for each in classes:  # Loop for the folders
         class_path = os.path.join(data_dir, each)
         files = os.listdir(class_path)
 
@@ -43,7 +94,7 @@ def extract_feature(data_dir, model, process_image, verbose=1, validation_split=
             labels.append(str(j))
             if verbose == 1:
                 pbar.update(1)
-        j = j + 1
+        j = j + 1'''
 
     if verbose == 1:
         pbar.close()

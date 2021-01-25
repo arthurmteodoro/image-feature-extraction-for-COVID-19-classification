@@ -37,9 +37,17 @@ def EfficientNetB0_baseline():
 
 
 def process_efficientnetb0(img_path):
-    img = tf.keras.preprocessing.image.load_img(img_path, target_size=(224, 224))
-    x = tf.keras.preprocessing.image.img_to_array(img)
-    x = np.expand_dims(x, axis=0)
+    # img = tf.keras.preprocessing.image.load_img(img_path, target_size=(224, 224))
+    # x = tf.keras.preprocessing.image.img_to_array(img)
+    img = tf.io.read_file(img_path)
+    x = tf.cond(
+        tf.image.is_jpeg(img),
+        lambda: tf.image.decode_jpeg(img, channels=3),
+        lambda: tf.image.decode_png(img, channels=3))
+    x = x[tf.newaxis, ...]
+    x = tf.image.resize(x, (224, 224))
+    # x = tf.squeeze(x)
+    x = tf.cast(x, tf.float32)
     x = efns.preprocess_input(x)
     return x
 
